@@ -6,7 +6,7 @@ description = "A modern, type-safe Rust SDK for the Groq AI API with enterprise-
 authors = ["Alex Wang <alex.wang@msn.com>"]
 license = "MIT"
 repository = "https://github.com/hiddenpath/groqai"
-keywords = ["groq", "ai", "llm", "api", "rust", "sdk"]
+keywords = ["groq", "ai", "api", "rust", "sdk"]
 categories = ["api-bindings", "artificial-intelligence"]
 readme = "README.md"
 
