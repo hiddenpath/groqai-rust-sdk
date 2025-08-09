@@ -7,7 +7,7 @@ authors = ["Alex Wang <alex.wang@msn.com>"]
 license = "MIT"
 repository = "https://github.com/hiddenpath/groqai"
 keywords = ["groq", "ai", "api", "rust", "sdk"]
-categories = ["api-bindings", "artificial-intelligence"]
+categories = ["api-bindings"]
 readme = "README.md"
 
 [dependencies]
