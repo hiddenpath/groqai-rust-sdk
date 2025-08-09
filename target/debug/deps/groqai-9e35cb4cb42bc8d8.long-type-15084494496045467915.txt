@@ -1,0 +1,1 @@
+futures::stream::AndThen<futures::stream::MapErr<impl Stream<Item = Result<bytes::Bytes, reqwest::Error>>, fn(reqwest::Error) -> GroqError {<GroqError as From<reqwest::Error>>::from}>, {async block@src\client.rs:77:31: 77:41}, {closure@src\client.rs:77:23: 77:30}>

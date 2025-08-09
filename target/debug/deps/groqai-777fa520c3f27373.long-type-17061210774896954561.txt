@@ -1,0 +1,1 @@
+impl core::future::future::Future<Output = Result<reqwest::async_impl::multipart::Part, std::io::error::Error>>

@@ -1,0 +1,12 @@
+C:\Users\walex\rustapp\groqai\target\debug\deps\libbytes-c00c0512b3eb2f08.rmeta: C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\lib.rs C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\alloc.rs C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\byte_buf.rs C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\byte_str.rs C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\bytes.rs C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\ring.rs C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\rope.rs C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\slice.rs
+
+C:\Users\walex\rustapp\groqai\target\debug\deps\bytes-c00c0512b3eb2f08.d: C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\lib.rs C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\alloc.rs C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\byte_buf.rs C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\byte_str.rs C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\bytes.rs C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\ring.rs C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\rope.rs C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\slice.rs
+
+C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\lib.rs:
+C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\alloc.rs:
+C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\byte_buf.rs:
+C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\byte_str.rs:
+C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\bytes.rs:
+C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\ring.rs:
+C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\rope.rs:
+C:\Users\walex\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bytes-0.1.2\src\slice.rs:
