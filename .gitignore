@@ -1,0 +1,44 @@
+# Rust编译输出
+/target/
+**/*.rs.bk
+*.pdb
+
+# Cargo
+Cargo.lock
+
+# IDE和编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 日志文件
+*.log
+
+# 环境变量文件
+.env
+.env.local
+
+# 临时文件
+*.tmp
+*.temp
+
+# 文档生成
+/doc/
+
+# 测试覆盖率
+*.profraw
+*.profdata
+coverage/
+
+# 性能分析
+*.flamegraph
+*.svg
+
+# 依赖锁定（对于库项目，通常不提交Cargo.lock）
+# Cargo.lock
