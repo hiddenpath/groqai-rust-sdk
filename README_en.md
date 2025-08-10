@@ -209,8 +209,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- 💬 Discussions: [GitHub Discussions](https://github.com/your-username/groqai/discussions)
-- 🐛 Issues: [GitHub Issues](https://github.com/your-username/groqai/issues)
+- 💬 Discussions: [GitHub Discussions](https://github.com/hiddenpath/groqai-rust-sdk/discussions)
+- 🐛 Issues: [GitHub Issues](https://github.com/hiddenpath/groqai-rust-sdk/issues)
 - 📖 Documentation: [docs.rs/groqai](https://docs.rs/groqai)
 - 🔗 Official API Documentation: [Groq API Reference](https://console.groq.com/docs/api-reference)
 
