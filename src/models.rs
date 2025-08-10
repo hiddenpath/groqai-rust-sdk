@@ -13,7 +13,7 @@ pub enum Role {
 }
 
 // Message content type supporting multimodal content
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Clone, Deserialize, Debug)]
 #[serde(untagged)]
 pub enum MessageContent {
     Text(String),
@@ -21,7 +21,7 @@ pub enum MessageContent {
 }
 
 // Message content parts supporting text and images
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Clone, Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum MessagePart {
     #[serde(rename = "text")]
@@ -34,7 +34,7 @@ pub enum MessagePart {
     },
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Clone, Deserialize, Debug)]
 pub struct ImageUrl {
     pub url: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -42,21 +42,21 @@ pub struct ImageUrl {
 }
 
 // Function call information
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Clone, Deserialize, Debug)]
 pub struct ToolCall {
     pub id: String,
     pub r#type: String,
     pub function: FunctionCall,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Clone, Deserialize, Debug)]
 pub struct FunctionCall {
     pub name: String,
     pub arguments: String,
 }
 
 // Chat message struct containing role, content and tool calls
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Clone, Deserialize, Debug)]
 pub struct ChatMessage {
     pub role: Role,
     pub content: MessageContent,
