@@ -59,7 +59,6 @@ pub struct FunctionCall {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ChatMessage {
     pub role: Role,
-    #[serde(flatten)]
     pub content: MessageContent,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_calls: Option<Vec<ToolCall>>,
