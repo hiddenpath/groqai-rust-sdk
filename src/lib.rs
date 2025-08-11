@@ -55,18 +55,15 @@ mod tests {
     }
 }
 
-// Import the main structs and enums from the modules
 pub use client::GroqClient;
 pub use error::GroqError;
 
-// Other possible exports
 pub use models::{
     Choice, Usage, ModelListResponse, Model, Permission, Delta, ChatCompletionChunk, ChunkChoice,
     FileObject, FileListResponse, FileDeleteResponse,
     BatchObject, BatchListResponse, BatchRequestCounts,
     AudioTranscriptionResponse, AudioTranslationResponse,
     ResponseFormat, Tool, ToolChoice, FunctionDef,
-    // New types
     MessageContent, MessagePart, ImageUrl, ToolCall, FunctionCall,
     AudioTranscriptionRequest, AudioTranslationRequest,
 };

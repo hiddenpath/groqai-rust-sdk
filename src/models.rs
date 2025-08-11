@@ -132,13 +132,13 @@ pub struct ChatCompletionRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub seed: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub top_logprobs: Option<u32>, // <--- Add this
+    pub top_logprobs: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub include_reasoning: Option<bool>, // <--- Add this
+    pub include_reasoning: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub reasoning_effort: Option<String>, // <--- Add this
+    pub reasoning_effort: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub reasoning_format: Option<String>, // <--- Add this
+    pub reasoning_format: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub service_tier: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -152,12 +152,11 @@ pub struct ChatCompletionRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_choice: Option<ToolChoice>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tools: Option<Vec<Tool>>, // Currently only supports function
+    pub tools: Option<Vec<Tool>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub search_settings: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stream_options: Option<serde_json::Value>,
-    // Reserved for future fields
     #[serde(flatten)]
     pub extra: Option<serde_json::Value>,
 }

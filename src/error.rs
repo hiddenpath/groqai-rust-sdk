@@ -13,7 +13,7 @@ pub struct GroqApiErrorDetails {
     pub param: Option<String>,
 }
 
-/// Enhanced API error with structured details
+/// Enhanced API error with structured details.
 #[derive(Debug, Clone)]
 pub struct GroqApiError {
     pub status: reqwest::StatusCode,
@@ -66,7 +66,7 @@ pub enum GroqError {
 }
 
 impl GroqError {
-    /// Create a new API error with structured details
+    /// Create a new API error with structured details.
     pub fn api_error(status: reqwest::StatusCode, response_text: String) -> Self {
         let details = serde_json::from_str::<serde_json::Value>(&response_text)
             .ok()
@@ -84,7 +84,7 @@ impl GroqError {
         GroqError::Api(api_error)
     }
 
-    /// Check if this is a rate limit error
+    /// Check if this is a rate limit error.
     pub fn is_rate_limit(&self) -> bool {
         match self {
             GroqError::Api(api_error) => {
@@ -97,7 +97,7 @@ impl GroqError {
         }
     }
 
-    /// Check if this is an authentication error
+    /// Check if this is an authentication error.
     pub fn is_authentication_error(&self) -> bool {
         match self {
             GroqError::Api(api_error) => {

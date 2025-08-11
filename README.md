@@ -402,8 +402,8 @@ cargo run --example modern_examples
 
 ## 📞 支持
 
-- 💬 讨论: [GitHub Discussions](https://github.com/your-username/groqai/discussions)
-- 🐛 问题: [GitHub Issues](https://github.com/your-username/groqai/issues)
+- 💬 讨论: [GitHub Discussions](https://github.com/hiddenpath/groqai-rust-sdk/discussions)
+- 🐛 问题: [GitHub Issues](https://github.com/hiddenpath/groqai-rust-sdk/issues)
 - 📖 文档: [docs.rs/groqai](https://docs.rs/groqai)
 - 🔗 官方API文档: [Groq API Reference](https://console.groq.com/docs/api-reference)
 

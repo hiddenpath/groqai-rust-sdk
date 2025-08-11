@@ -17,7 +17,7 @@ use std::pin::Pin;
 /// This client provides methods for chat completions, file operations,
 /// batch processing, and audio operations.
 ///
-/// # Examples
+/// # Examples:
 ///
 /// ```rust,no_run
 /// use groqai::GroqClient;
@@ -69,7 +69,7 @@ impl GroqClient {
         // Basic validation: API key should start with "gsk_" for Groq
         if !api_key.starts_with("gsk_") {
             return Err(GroqError::InvalidApiKey(
-                "Invalid API key format. Groq API keys should start with 'gsk_'".to_string(),
+                "Invalid Groq API key format. It should start with 'gsk_'".to_string(),
             ));
         }
 
