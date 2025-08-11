@@ -5,7 +5,7 @@ pub mod models;
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+
     use crate::client::GroqClient;
     use crate::error::GroqError;
     use crate::models::{ChatMessage, Role, ChatCompletionRequest};

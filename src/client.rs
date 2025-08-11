@@ -1,30 +1,31 @@
 use crate::error::GroqError;
 use crate::models::{
-    ChatCompletionChunk, ChatCompletionRequest, ChatCompletionResponse,
-    ModelListResponse, FileObject, FileListResponse, FileDeleteResponse,
-    BatchObject, BatchListResponse, AudioTranscriptionResponse, AudioTranslationResponse,
-    AudioTranscriptionRequest, AudioTranslationRequest, Tool, ToolChoice, ChatMessage,
+    AudioTranscriptionRequest, AudioTranscriptionResponse, AudioTranslationRequest,
+    AudioTranslationResponse, BatchListResponse, BatchObject, ChatCompletionChunk,
+    ChatCompletionRequest, ChatCompletionResponse, FileDeleteResponse, FileListResponse, FileObject,
+    Model, ModelListResponse, Tool, ToolChoice, ChatMessage,
 };
-use futures::TryStreamExt;
 use futures::stream::Stream;
-use reqwest::Client;
+use futures::TryStreamExt;
+use reqwest::{Client, RequestBuilder};
+use serde::{de::DeserializeOwned, Serialize};
 use std::pin::Pin;
 
 #[derive(Debug)]
 /// A client for interacting with the Groq API.
-/// 
+///
 /// This client provides methods for chat completions, file operations,
 /// batch processing, and audio operations.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```rust,no_run
 /// use groqai::GroqClient;
-/// 
+///
 /// #[tokio::main]
 /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ///     let client = GroqClient::new("gsk_your_api_key_here".to_string())?;
-///     
+///
 ///     // Use the client...
 ///     Ok(())
 /// }
@@ -37,35 +38,39 @@ pub struct GroqClient {
 
 impl GroqClient {
     /// Create a new GroqClient with the provided API key.
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `api_key` - Your Groq API key. Must start with "gsk_".
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// Returns a `Result` containing the client if successful, or an error if the API key is invalid.
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// * `InvalidApiKey` - If the API key is empty or has an invalid format.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```rust
     /// use groqai::GroqClient;
-    /// 
+    ///
     /// let client = GroqClient::new("gsk_your_api_key_here".to_string())?;
     /// # Ok::<(), groqai::GroqError>(())
     /// ```
     pub fn new(api_key: String) -> Result<Self, GroqError> {
         if api_key.trim().is_empty() {
-            return Err(GroqError::InvalidApiKey("API key cannot be empty".to_string()));
+            return Err(GroqError::InvalidApiKey(
+                "API key cannot be empty".to_string(),
+            ));
         }
-        
+
         // Basic validation: API key should start with "gsk_" for Groq
         if !api_key.starts_with("gsk_") {
-            return Err(GroqError::InvalidApiKey("Invalid API key format. Groq API keys should start with 'gsk_'".to_string()));
+            return Err(GroqError::InvalidApiKey(
+                "Invalid API key format. Groq API keys should start with 'gsk_'".to_string(),
+            ));
         }
 
         let client = Client::new();
@@ -78,25 +83,25 @@ impl GroqClient {
     }
 
     /// Create a new GroqClient from the `GROQ_API_KEY` environment variable.
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// Returns a `Result` containing the client if successful, or an error if the environment variable is not set or invalid.
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// * `InvalidApiKey` - If the `GROQ_API_KEY` environment variable is not set or contains an invalid API key.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```bash
     /// # Set environment variable
     /// export GROQ_API_KEY="gsk_your_api_key_here"
     /// ```
-    /// 
+    ///
     /// ```rust
     /// use groqai::GroqClient;
-    /// 
+    ///
     /// let client = GroqClient::from_env()?;
     /// # Ok::<(), groqai::GroqError>(())
     /// ```
@@ -107,17 +112,9 @@ impl GroqClient {
         Self::new(api_key)
     }
 
-    /// Chat completions
-    pub async fn chat_completions(
-        &self,
-        request: ChatCompletionRequest,
-    ) -> Result<ChatCompletionResponse, GroqError> {
-        let url = format!("{}/chat/completions", self.base_url);
-        let response = self
-            .client
-            .post(&url)
+    async fn _send_request(&self, request_builder: RequestBuilder) -> Result<reqwest::Response, GroqError> {
+        let response = request_builder
             .header("Authorization", format!("Bearer {}", self.api_key))
-            .json(&request)
             .send()
             .await?;
 
@@ -127,8 +124,47 @@ impl GroqClient {
             return Err(GroqError::api_error(status, text));
         }
 
-        let chat_response: ChatCompletionResponse = response.json().await?;
-        Ok(chat_response)
+        Ok(response)
+    }
+
+    async fn _get<T: DeserializeOwned>(&self, path: &str) -> Result<T, GroqError> {
+        let url = format!("{}{}", self.base_url, path);
+        let builder = self.client.get(&url);
+        let response = self._send_request(builder).await?;
+        response.json().await.map_err(GroqError::from)
+    }
+
+    async fn _post_json<B: Serialize, T: DeserializeOwned>(
+        &self,
+        path: &str,
+        body: &B,
+    ) -> Result<T, GroqError> {
+        let url = format!("{}{}", self.base_url, path);
+        let builder = self.client.post(&url).json(body);
+        let response = self._send_request(builder).await?;
+        response.json().await.map_err(GroqError::from)
+    }
+
+    async fn _post_empty<T: DeserializeOwned>(&self, path: &str) -> Result<T, GroqError> {
+        let url = format!("{}{}", self.base_url, path);
+        let builder = self.client.post(&url);
+        let response = self._send_request(builder).await?;
+        response.json().await.map_err(GroqError::from)
+    }
+
+    async fn _delete<T: DeserializeOwned>(&self, path: &str) -> Result<T, GroqError> {
+        let url = format!("{}{}", self.base_url, path);
+        let builder = self.client.delete(&url);
+        let response = self._send_request(builder).await?;
+        response.json().await.map_err(GroqError::from)
+    }
+
+    /// Chat completions
+    pub async fn chat_completions(
+        &self,
+        request: ChatCompletionRequest,
+    ) -> Result<ChatCompletionResponse, GroqError> {
+        self._post_json("/chat/completions", &request).await
     }
 
     /// Streaming chat completions
@@ -138,19 +174,8 @@ impl GroqClient {
     ) -> Result<Pin<Box<dyn Stream<Item = Result<ChatCompletionChunk, GroqError>> + Send>>, GroqError>
     {
         let url = format!("{}/chat/completions", self.base_url);
-        let response = self
-            .client
-            .post(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .json(&request)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(GroqError::api_error(status, text));
-        }
+        let builder = self.client.post(&url).json(&request);
+        let response = self._send_request(builder).await?;
 
         let bytes_stream = response.bytes_stream().map_err(GroqError::from);
 
@@ -161,32 +186,21 @@ impl GroqClient {
             };
 
             // Process SSE format data
-            let lines: Vec<&str> = chunk_str.lines().collect();
-
-            for line in lines {
+            for line in chunk_str.lines() {
                 let line = line.trim();
-                if line.is_empty() || line == "data: [DONE]" {
+                if line.is_empty() || !line.starts_with("data: ") {
                     continue;
                 }
 
-                if line.starts_with("data: ") {
-                    let json_str = line.trim_start_matches("data: ");
-                    if json_str == "[DONE]" {
-                        continue;
-                    }
+                let json_str = line.trim_start_matches("data: ");
+                if json_str == "[DONE]" || json_str.trim().is_empty() {
+                    continue;
+                }
 
-                    // Skip empty data lines
-                    if json_str.trim().is_empty() {
-                        continue;
-                    }
-
-                    match serde_json::from_str::<ChatCompletionChunk>(json_str) {
-                        Ok(chunk) => return Ok(Some(chunk)),
-                        Err(e) => {
-                            // Log the invalid JSON for debugging but don't fail the entire stream
-                            eprintln!("Failed to parse chunk JSON: {} from line: {}", e, json_str);
-                            continue;
-                        }
+                match serde_json::from_str::<ChatCompletionChunk>(json_str) {
+                    Ok(chunk) => return Ok(Some(chunk)),
+                    Err(e) => {
+                        return Err(GroqError::StreamParsing(format!("Failed to parse chunk JSON: {}", e)));
                     }
                 }
             }
@@ -199,21 +213,12 @@ impl GroqClient {
 
     /// Get available models list
     pub async fn get_models(&self) -> Result<ModelListResponse, GroqError> {
-        let url = format!("{}/models", self.base_url);
-        let response = self
-            .client
-            .get(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .send()
-            .await?;
+        self._get("/models").await
+    }
 
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(GroqError::api_error(status, text));
-        }
-        let models: ModelListResponse = response.json().await?;
-        Ok(models)
+    /// Get model information
+    pub async fn get_model(&self, model_id: &str) -> Result<Model, GroqError> {
+        self._get(&format!("/models/{}", model_id)).await
     }
 
     /// Upload file
@@ -227,91 +232,34 @@ impl GroqClient {
                     .await
                     .map_err(|e| GroqError::Multipart(e.to_string()))?,
             );
-        let response = self
-            .client
-            .post(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .multipart(form)
-            .send()
-            .await?;
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(GroqError::api_error(status, text));
-        }
-        let file_object: FileObject = response.json().await?;
-        Ok(file_object)
+        
+        let builder = self.client.post(&url).multipart(form);
+        let response = self._send_request(builder).await?;
+
+        response.json().await.map_err(GroqError::from)
     }
 
     /// List all files
     pub async fn list_files(&self) -> Result<FileListResponse, GroqError> {
-        let url = format!("{}/files", self.base_url);
-        let response = self
-            .client
-            .get(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .send()
-            .await?;
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(GroqError::api_error(status, text));
-        }
-        let file_list: FileListResponse = response.json().await?;
-        Ok(file_list)
+        self._get("/files").await
     }
 
     /// Delete file
     pub async fn delete_file(&self, file_id: &str) -> Result<FileDeleteResponse, GroqError> {
-        let url = format!("{}/files/{}", self.base_url, file_id);
-        let response = self
-            .client
-            .delete(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .send()
-            .await?;
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(GroqError::api_error(status, text));
-        }
-        let delete_response: FileDeleteResponse = response.json().await?;
-        Ok(delete_response)
+        self._delete(&format!("/files/{}", file_id)).await
     }
 
     /// Get file information
     pub async fn retrieve_file(&self, file_id: &str) -> Result<FileObject, GroqError> {
-        let url = format!("{}/files/{}", self.base_url, file_id);
-        let response = self
-            .client
-            .get(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .send()
-            .await?;
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(GroqError::api_error(status, text));
-        }
-        let file_object: FileObject = response.json().await?;
-        Ok(file_object)
+        self._get(&format!("/files/{}", file_id)).await
     }
 
     /// Download file content
     pub async fn download_file(&self, file_id: &str) -> Result<bytes::Bytes, GroqError> {
         let url = format!("{}/files/{}/content", self.base_url, file_id);
-        let response = self
-            .client
-            .get(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .send()
-            .await?;
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(GroqError::api_error(status, text));
-        }
-        Ok(response.bytes().await?)
+        let builder = self.client.get(&url);
+        let response = self._send_request(builder).await?;
+        response.bytes().await.map_err(GroqError::from)
     }
 
     /// Create batch job
@@ -320,80 +268,27 @@ impl GroqClient {
         input_file_id: &str,
         completion_window: &str,
     ) -> Result<BatchObject, GroqError> {
-        let url = format!("{}/batches", self.base_url);
         let body = serde_json::json!({
             "input_file_id": input_file_id,
             "endpoint": "/v1/chat/completions",
             "completion_window": completion_window
         });
-        let response = self
-            .client
-            .post(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .json(&body)
-            .send()
-            .await?;
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(GroqError::api_error(status, text));
-        }
-        let batch_object: BatchObject = response.json().await?;
-        Ok(batch_object)
+        self._post_json("/batches", &body).await
     }
 
     /// Retrieve batch job
     pub async fn retrieve_batch(&self, batch_id: &str) -> Result<BatchObject, GroqError> {
-        let url = format!("{}/batches/{}", self.base_url, batch_id);
-        let response = self
-            .client
-            .get(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .send()
-            .await?;
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(GroqError::api_error(status, text));
-        }
-        let batch_object: BatchObject = response.json().await?;
-        Ok(batch_object)
+        self._get(&format!("/batches/{}", batch_id)).await
     }
 
     /// Cancel batch job
     pub async fn cancel_batch(&self, batch_id: &str) -> Result<BatchObject, GroqError> {
-        let url = format!("{}/batches/{}/cancel", self.base_url, batch_id);
-        let response = self
-            .client
-            .post(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .send()
-            .await?;
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(GroqError::api_error(status, text));
-        }
-        let batch_object: BatchObject = response.json().await?;
-        Ok(batch_object)
+        self._post_empty(&format!("/batches/{}/cancel", batch_id)).await
     }
 
     /// List all batch jobs
     pub async fn list_batches(&self) -> Result<BatchListResponse, GroqError> {
-        let url = format!("{}/batches", self.base_url);
-        let response = self
-            .client
-            .get(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .send()
-            .await?;
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(GroqError::api_error(status, text));
-        }
-        let batch_list: BatchListResponse = response.json().await?;
-        Ok(batch_list)
+        self._get("/batches").await
     }
 
     /// Audio transcription
@@ -430,20 +325,9 @@ impl GroqClient {
             }
         }
         
-        let response = self
-            .client
-            .post(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .multipart(form)
-            .send()
-            .await?;
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(GroqError::api_error(status, text));
-        }
-        let transcription: AudioTranscriptionResponse = response.json().await?;
-        Ok(transcription)
+        let builder = self.client.post(&url).multipart(form);
+        let response = self._send_request(builder).await?;
+        response.json().await.map_err(GroqError::from)
     }
 
     /// Audio translation
@@ -475,20 +359,9 @@ impl GroqClient {
             form = form.text("language", lang);
         }
         
-        let response = self
-            .client
-            .post(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .multipart(form)
-            .send()
-            .await?;
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(GroqError::api_error(status, text));
-        }
-        let translation: AudioTranslationResponse = response.json().await?;
-        Ok(translation)
+        let builder = self.client.post(&url).multipart(form);
+        let response = self._send_request(builder).await?;
+        response.json().await.map_err(GroqError::from)
     }
 
     /// Audio speech synthesis
@@ -516,19 +389,10 @@ impl GroqClient {
         if let Some(s) = speed {
             body["speed"] = serde_json::json!(s);
         }
-        let response = self
-            .client
-            .post(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .json(&body)
-            .send()
-            .await?;
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(GroqError::api_error(status, text));
-        }
-        Ok(response.bytes().await?)
+
+        let builder = self.client.post(&url).json(&body);
+        let response = self._send_request(builder).await?;
+        response.bytes().await.map_err(GroqError::from)
     }
 
     /// Helper method to create a tool call request

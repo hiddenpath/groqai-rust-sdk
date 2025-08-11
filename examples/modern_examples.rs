@@ -1,10 +1,9 @@
 use groqai::models::{
-    ChatMessage, Role, MessageContent, MessagePart, ImageUrl,
+    ChatMessage, Role, MessagePart, ImageUrl,
     AudioTranscriptionRequest, AudioTranslationRequest, ChatCompletionRequest,
     Tool, FunctionDef, ToolCall, FunctionCall,
 };
 use groqai::client::GroqClient;
-use futures::TryStreamExt;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

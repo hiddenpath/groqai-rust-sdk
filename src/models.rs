@@ -132,13 +132,19 @@ pub struct ChatCompletionRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub seed: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub top_logprobs: Option<u32>, // <--- Add this
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_reasoning: Option<bool>, // <--- Add this
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reasoning_effort: Option<String>, // <--- Add this
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reasoning_format: Option<String>, // <--- Add this
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub service_tier: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parallel_tool_calls: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub logprobs: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub top_logprobs: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub logit_bias: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -165,9 +171,24 @@ impl ChatCompletionRequest {
             max_completion_tokens: Some(1000),
             stream: Some(false),
             tools: Some(Vec::new()),
+            include_reasoning: Some(true),
+            reasoning_effort: Some("low".to_string()),
+            reasoning_format: Some("json".to_string()),
+            top_logprobs: Some(10),
             ..Default::default()
         }
     }
+
+    pub fn stop_with_single(mut self, stop: String) -> Self {
+        self.stop = Some(vec![stop]);
+        self
+    }
+
+    pub fn stop_with_multiple(mut self, stops: Vec<String>) -> Self {
+        self.stop = Some(stops);
+        self
+    }
+
 }
 
 #[derive(Serialize, Deserialize, Debug)]
