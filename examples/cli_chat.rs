@@ -28,7 +28,7 @@ async fn main() -> Result<(), GroqError> {
     let stream = args.contains(&"--stream".to_string());
 
     let mut conversation_history = Vec::new();
-    const MAX_HISTORY_PAIRS: usize = 10; // 保留最近10轮对话
+    const MAX_HISTORY_PAIRS: usize = 15; // 保留最近15轮对话
     const MAX_TOKENS_ESTIMATE: usize = 18000; // 估算token限制
 
     loop {

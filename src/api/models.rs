@@ -1,6 +1,6 @@
 use crate::client::GroqClient;
 use crate::error::GroqError;
-use crate::types::ModelList;
+use crate::types::{Model, ModelList};
 
 pub struct ModelsRequestBuilder<'a> {
     client: &'a GroqClient,
@@ -13,6 +13,12 @@ impl<'a> ModelsRequestBuilder<'a> {
 
     pub async fn list(self) -> Result<ModelList, GroqError> {
         let response = self.client.transport.get_json("models").await?;
+        serde_json::from_value(response).map_err(GroqError::from)
+    }
+
+    pub async fn retrieve(self, model_id: String) -> Result<Model, GroqError> {
+        let path = format!("models/{}", model_id);
+        let response = self.client.transport.get_json(&path).await?;
         serde_json::from_value(response).map_err(GroqError::from)
     }
 }

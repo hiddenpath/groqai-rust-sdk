@@ -266,7 +266,7 @@ pub struct Translation {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct File {
+pub struct WorkFile {
     pub id: String,
     pub object: String,
     pub bytes: u64,
@@ -276,13 +276,13 @@ pub struct File {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct FileList {
+pub struct WorkFileList {
     pub object: String,
-    pub data: Vec<File>,
+    pub data: Vec<WorkFile>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct FileDeletion {
+pub struct WorkFileDeletion {
     pub id: String,
     pub object: String,
     pub deleted: bool,
