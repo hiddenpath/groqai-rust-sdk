@@ -1,13 +1,14 @@
-use groqai::models::{
-    ChatMessage, Role, MessagePart, ImageUrl,
+use groqai::{
+    ChatMessage, Role, MessageContent, MessagePart, ImageUrl,
     AudioTranscriptionRequest, AudioTranslationRequest, ChatCompletionRequest,
     Tool, FunctionDef, ToolCall, FunctionCall,
+    GroqClient, GroqClientBuilder
 };
-use groqai::client::GroqClient;
+use futures::TryStreamExt;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = GroqClient::new("your-api-key".to_string());
+    let client = GroqClientBuilder::new("your-api-key".to_string())?.build()?;
 
     // Example 1: Basic text message
     println!("=== Example 1: Basic Text Message ===");
@@ -51,7 +52,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let tool = Tool {
-        r#type: "function".to_string(),
+        type_: "function".to_string(),
         function: function_def,
     };
 
@@ -62,20 +63,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Example 4: Audio transcription request
     println!("\n=== Example 4: Audio Transcription Request ===");
-    let transcription_request = AudioTranscriptionRequest::new(
-        "whisper-large-v3".to_string(),
-    )
-    .language("en".to_string())
-    .prompt("This is an English audio clip".to_string())
-    .temperature(0.0);
+    let transcription_request = AudioTranscriptionRequest {
+        file: None,
+        url: Some("https://example.com/audio.mp3".to_string()),
+        model: "whisper-large-v3".to_string(),
+        language: Some("en".to_string()),
+        prompt: Some("This is an English audio clip".to_string()),
+        response_format: Some("text".to_string()),
+        temperature: Some(0.0),
+        timestamp_granularities: None,
+    };
 
     // Example 5: Audio translation request
     println!("\n=== Example 5: Audio Translation Request ===");
-    let translation_request = AudioTranslationRequest::new(
-        "whisper-large-v3".to_string(),
-    )
-    .prompt("This is an audio clip that needs translation".to_string())
-    .response_format("text".to_string());
+    let translation_request = AudioTranslationRequest {
+        file: None,
+        url: Some("https://example.com/audio.mp3".to_string()),
+        model: "whisper-large-v3".to_string(),
+        prompt: Some("This is an audio clip that needs translation".to_string()),
+        response_format: Some("text".to_string()),
+        temperature: Some(0.0),
+    };
 
     // Example 6: Tool response message
     println!("\n=== Example 6: Tool Response ===");
@@ -88,23 +96,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n=== Example 7: Message with Tool Calls ===");
     let tool_call = ToolCall {
         id: "call_123".to_string(),
-        r#type: "function".to_string(),
+        type_: "function".to_string(),
         function: FunctionCall {
             name: "get_weather".to_string(),
             arguments: r#"{"city": "Beijing"}"#.to_string(),
         },
     };
 
-    let message_with_tool_calls = ChatMessage::new_text(
-        Role::Assistant,
-        "".to_string() // Content is usually empty for tool calls
-    ).with_tool_calls(vec![tool_call]);
+    let message_with_tool_calls = ChatMessage {
+        role: Role::Assistant,
+        content: MessageContent::Text("I'll check the weather for you.".to_string()),
+        tool_calls: Some(vec![tool_call]),
+        tool_call_id: None,
+    };
 
     // Example 8: Chat completion request
     println!("\n=== Example 8: Chat Completion Request ===");
     let chat_request = ChatCompletionRequest {
         messages: vec![simple_message],
-        model: "llama3-8b-8192".to_string(),
+        model: "llama-3.1-70b-versatile".to_string(),
         temperature: Some(0.7),
         max_completion_tokens: Some(1000),
         stream: Some(false),
@@ -119,7 +129,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Role::User,
             "Write a short poem about Rust".to_string()
         )],
-        model: "llama3-8b-8192".to_string(),
+        model: "llama-3.1-70b-versatile".to_string(),
         stream: Some(true),
         temperature: Some(0.8),
         ..Default::default()

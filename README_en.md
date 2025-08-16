@@ -44,7 +44,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let request = ChatCompletionRequest {
         messages: vec![message],
-        model: "llama3-8b-8192".to_string(),
+        model: "llama-3.1-70b-versatile".to_string(),
         temperature: Some(0.7),
         stream: Some(false),
         ..Default::default()
@@ -73,7 +73,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let request = ChatCompletionRequest {
         messages: vec![message],
-        model: "llama3-8b-8192".to_string(),
+        model: "llama-3.1-70b-versatile".to_string(),
         stream: Some(true),
         ..Default::default()
     };

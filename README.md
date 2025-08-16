@@ -51,7 +51,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let request = ChatCompletionRequest {
         messages: vec![message],
-        model: "llama3-8b-8192".to_string(),
+        model: "llama-3.1-70b-versatile".to_string(),
         temperature: Some(0.7),
         stream: Some(false),
         ..Default::default()
@@ -80,7 +80,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let request = ChatCompletionRequest {
         messages: vec![message],
-        model: "llama3-8b-8192".to_string(),
+        model: "llama-3.1-70b-versatile".to_string(),
         stream: Some(true),
         ..Default::default()
     };
@@ -129,7 +129,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 使用便捷的助手方法
     let response = client.chat_with_tools(
         messages,
-        "llama3-8b-8192",
+        "llama-3.1-70b-versatile",
         tools,
         Some(ToolChoice::Auto)
     ).await?;
@@ -294,7 +294,7 @@ use groqai::{GroqClient, ChatCompletionRequest};
 
 let request = ChatCompletionRequest {
     messages: vec![message],
-    model: "llama3-8b-8192".to_string(),
+    model: "llama-3.1-70b-versatile".to_string(),
     logprobs: Some(true),  // 启用日志概率
     top_logprobs: Some(5), // 返回前5个最可能的token
     ..Default::default()
