@@ -32,7 +32,7 @@
 
 ```toml
 [dependencies]
-groqai = "0.1.8"
+groqai = "0.1.9"
 tokio = { version = "1.47", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 ```
@@ -366,7 +366,7 @@ let client = GroqClientBuilder::new(api_key)?
 
 ## 项目状态
 
-此 SDK 正在积极维护且已可用于生产环境。当前版本：**0.1.8**
+此 SDK 正在积极维护且已可用于生产环境。当前版本：**0.1.9**
 
 ### 路线图
 

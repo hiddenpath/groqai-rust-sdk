@@ -32,7 +32,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-groqai = "0.1.8"
+groqai = "0.1.9"
 tokio = { version = "1.47", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 ```
@@ -366,7 +366,7 @@ Check out the `examples/` directory for comprehensive examples:
 
 ## Project Status
 
-This SDK is actively maintained and production-ready. Current version: **0.1.8**
+This SDK is actively maintained and production-ready. Current version: **0.1.9**
 
 ### Roadmap
 
