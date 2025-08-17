@@ -1,6 +1,12 @@
-// examples/cli_chat.rs
-// CLI聊天应用示例，使用 llama-3.3-70b-versatile 模型
-// 该模型提供强大的推理能力和高质量输出
+/// examples/cli_chat.rs
+
+/// CLI chat application example using the groq llama-3.3-70b-versatile model
+/// Enable streaming conversation with the --stream command line argument
+/// Read the proxy server URL from the environment variable PROXY_URL
+/// CLI聊天应用示例，使用 llama-3.3-70b-versatile 模型
+/// 使用 --stream 命令行参数开启流式对话
+/// 使用环境变量PROXY_URL读取代理服务器路径
+
 use groqai::client::GroqClientBuilder;
 use groqai::error::GroqError;
 use groqai::types::{ChatMessage, Role, MessageContent};
@@ -32,12 +38,12 @@ async fn main() -> Result<(), GroqError> {
     const MAX_TOKENS_ESTIMATE: usize = 18000; // 估算token限制
 
     loop {
-        print!("Enter your message: ");
+        print!("\x1b[32mEnter your message: \x1b[0m");
         io::stdout().flush().unwrap();
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
 
-        if input.trim() == "exit" {
+        if matches!(input.trim(), "exit" | "quit" | "bye" | "再见") {
             break;
         }
 
@@ -71,6 +77,7 @@ async fn main() -> Result<(), GroqError> {
             let mut ai_response = String::new();
             let mut consecutive_errors = 0;
             const MAX_CONSECUTIVE_ERRORS: u32 = 3;
+            let mut first_chunk = true;
             
             while let Some(chunk) = stream.next().await {
                 match chunk {
@@ -81,6 +88,10 @@ async fn main() -> Result<(), GroqError> {
                             if let Some(content) = &choice.delta.content {
                                 match content {
                                     groqai::types::MessageContent::Text(text) => {
+                                        if first_chunk {
+                                            print!("\x1b[33mAI says: \x1b[0m");
+                                            first_chunk = false;
+                                        }
                                         print!("{}", text);
                                         ai_response.push_str(text);
                                         io::stdout().flush().unwrap();
@@ -129,7 +140,7 @@ async fn main() -> Result<(), GroqError> {
             if let Some(choice) = response.choices.first() {
                 match &choice.message.content {
                     groqai::types::MessageContent::Text(text) => {
-                        println!("Response: {}", text);
+                        println!("\x1b[33mAI says: \x1b[0m{}", text);
                         conversation_history.push(ChatMessage::new_text(Role::Assistant, text.clone()));
                     },
                     _ => println!("Unexpected response format"),
