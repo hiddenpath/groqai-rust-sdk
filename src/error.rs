@@ -1,9 +1,13 @@
+//! Error types and handling for the Groq API client
+//! 
+//! 错误类型和处理模块，定义了所有可能的错误情况
+
 use reqwest::{header::HeaderMap, StatusCode};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use thiserror::Error;
 
-// 包装 serde_json::Error
+/// Wrapper for JSON serialization errors
 #[derive(Debug, Clone, Error)]
 #[error("JSON serialization error: {0}")]
 pub struct SerdeError(String);
@@ -14,7 +18,7 @@ impl From<serde_json::Error> for SerdeError {
     }
 }
 
-// 包装 reqwest::Error
+/// Wrapper for HTTP transport errors
 #[derive(Debug, Clone, Error)]
 #[error("HTTP transport error: {0}")]
 pub struct TransportError(String);
@@ -25,79 +29,112 @@ impl From<reqwest::Error> for TransportError {
     }
 }
 
+/// Details of an API error response from Groq
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GroqApiErrorDetails {
+    /// The error message from the API
     pub message: String,
+    /// The type of error (e.g., "invalid_request_error", "rate_limit_exceeded")
     #[serde(rename = "type")]
     pub error_type: Option<String>,
+    /// Additional error code if provided
     pub code: Option<String>,
+    /// Parameter that caused the error, if applicable
     pub param: Option<String>,
 }
 
-#[derive(Debug, Clone, Error)]
-#[error("API error {status}: {message}")]
+/// API error response structure from Groq
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GroqApiError {
+    /// HTTP status code of the error response
+    #[serde(skip)]
     pub status: StatusCode,
-    pub message: String,
-    pub details: Option<GroqApiErrorDetails>,
-    pub request_id: Option<String>,
+    /// Detailed error information
+    pub error: GroqApiErrorDetails,
+    /// Retry-After header value for rate limiting, if present
+    #[serde(skip)]
     pub retry_after: Option<Duration>,
 }
 
 impl GroqApiError {
-    pub fn from_response(status: StatusCode, raw: String, headers: &HeaderMap) -> Self {
-        let details = serde_json::from_str::<GroqApiErrorDetails>(&raw).ok();
-        let request_id = headers
-            .get("x-request-id")
-            .and_then(|v| v.to_str().ok())
-            .map(String::from);
+    /// Creates a new API error from response components
+    /// 
+    /// # Arguments
+    /// 
+    /// * `status` - HTTP status code
+    /// * `body` - Response body as string
+    /// * `headers` - HTTP response headers
+    pub fn from_response(status: StatusCode, body: String, headers: &HeaderMap) -> Self {
         let retry_after = headers
             .get("retry-after")
             .and_then(|v| v.to_str().ok())
             .and_then(|s| s.parse::<u64>().ok())
             .map(Duration::from_secs);
-        let message = details
-            .as_ref()
-            .map(|d| d.message.clone())
-            .unwrap_or_else(|| status.canonical_reason().unwrap_or("API error").to_string());
+
+        let error_details = serde_json::from_str::<serde_json::Value>(&body)
+            .ok()
+            .and_then(|v| v.get("error").cloned())
+            .and_then(|e| serde_json::from_value(e).ok())
+            .unwrap_or_else(|| GroqApiErrorDetails {
+                message: body,
+                error_type: None,
+                code: None,
+                param: None,
+            });
+
         Self {
             status,
-            message,
-            details,
-            request_id,
+            error: error_details,
             retry_after,
         }
     }
 }
 
-#[derive(Error, Debug, Clone)]
+impl std::fmt::Display for GroqApiError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Groq API error ({}): {}", self.status, self.error.message)
+    }
+}
+
+impl std::error::Error for GroqApiError {}
+
+/// Main error type for the Groq client library
+/// 
+/// This enum covers all possible error conditions that can occur
+/// when using the Groq API client.
+#[derive(Debug, Clone, Error)]
 pub enum GroqError {
-    #[error("{0}")]
-    Api(GroqApiError),
-
-    #[error("{0}")]
-    Serde(SerdeError),
-
-    #[error("{0}")]
-    Transport(TransportError),
-
+    /// Invalid API key format or authentication failure
     #[error("Invalid API key: {0}")]
     InvalidApiKey(String),
 
-    #[error("Invalid message content: {0}")]
+    /// Invalid message content or request parameters
+    #[error("Invalid message: {0}")]
     InvalidMessage(String),
 
-    #[error("Multipart error: {0}")]
-    Multipart(String),
-
-    #[error("Stream parsing error: {0}")]
-    StreamParsing(String),
-
-    #[error("Rate limited")]
+    /// Rate limiting error - too many requests
+    #[error("Rate limited - too many requests")]
     RateLimited,
 
-    #[error("Canceled")]
-    Canceled,
+    /// API returned an error response
+    #[error("API error: {0}")]
+    Api(#[from] GroqApiError),
+
+    /// HTTP transport layer error
+    #[error("Transport error: {0}")]
+    Transport(#[from] TransportError),
+
+    /// JSON serialization/deserialization error
+    #[error("Serialization error: {0}")]
+    Serde(#[from] SerdeError),
+
+    /// URL parsing error
+    #[error("URL parse error: {0}")]
+    UrlParse(#[from] url::ParseError),
+
+    /// Backoff/retry mechanism error
+    #[error("Backoff error: {0}")]
+    Backoff(String),
 }
 
 impl From<serde_json::Error> for GroqError {
@@ -112,49 +149,61 @@ impl From<reqwest::Error> for GroqError {
     }
 }
 
-impl From<backoff::Error<GroqError>> for GroqError {
-    fn from(error: backoff::Error<GroqError>) -> Self {
-        match error {
-            backoff::Error::Permanent(err) => err,
-            backoff::Error::Transient { err, .. } => err,
+impl<E> From<backoff::Error<E>> for GroqError
+where
+    E: Into<GroqError>,
+{
+    fn from(err: backoff::Error<E>) -> Self {
+        match err {
+            backoff::Error::Permanent(e) => e.into(),
+            backoff::Error::Transient { err, .. } => err.into(),
         }
-    }
-}
-
-impl From<url::ParseError> for GroqError {
-    fn from(err: url::ParseError) -> Self {
-        GroqError::InvalidMessage(format!("URL parse error: {}", err))
     }
 }
 
 impl GroqError {
-    pub fn is_rate_limit(&self) -> bool {
-        matches!(self, Self::RateLimited)
-            || matches!(
-                self,
-                Self::Api(e) if e.status == StatusCode::TOO_MANY_REQUESTS
-                    || e.details.as_ref().map(|d| d.error_type.as_deref() == Some("rate_limit_exceeded")).unwrap_or(false)
-            )
-    }
-
+    /// Returns true if this error is retryable
+    /// 
+    /// # Examples
+    /// 
+    /// ```rust
+    /// use groqai::GroqError;
+    /// 
+    /// let rate_limit_error = GroqError::RateLimited;
+    /// assert!(rate_limit_error.is_retryable());
+    /// 
+    /// let invalid_key_error = GroqError::InvalidApiKey("bad key".to_string());
+    /// assert!(!invalid_key_error.is_retryable());
+    /// ```
     pub fn is_retryable(&self) -> bool {
-        matches!(
-            self,
-            Self::Api(e) if e.status.is_server_error() || e.status == StatusCode::TOO_MANY_REQUESTS
-        ) || matches!(self, Self::Transport(_))
+        matches!(self, GroqError::RateLimited | GroqError::Transport(_))
     }
 
-    pub fn is_authentication_error(&self) -> bool {
-        matches!(
-            self,
-            Self::Api(e) if e.status == StatusCode::UNAUTHORIZED || e.status == StatusCode::FORBIDDEN
-        )
+    /// Returns true if this is a rate limiting error
+    /// 
+    /// # Examples
+    /// 
+    /// ```rust
+    /// use groqai::GroqError;
+    /// 
+    /// let rate_limit_error = GroqError::RateLimited;
+    /// assert!(rate_limit_error.is_rate_limited());
+    /// ```
+    pub fn is_rate_limited(&self) -> bool {
+        matches!(self, GroqError::RateLimited)
     }
 
-    pub fn retry_after(&self) -> Option<Duration> {
-        match self {
-            Self::Api(e) => e.retry_after,
-            _ => None,
-        }
+    /// Returns true if this is an authentication error
+    /// 
+    /// # Examples
+    /// 
+    /// ```rust
+    /// use groqai::GroqError;
+    /// 
+    /// let auth_error = GroqError::InvalidApiKey("bad key".to_string());
+    /// assert!(auth_error.is_auth_error());
+    /// ```
+    pub fn is_auth_error(&self) -> bool {
+        matches!(self, GroqError::InvalidApiKey(_))
     }
 }

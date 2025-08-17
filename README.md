@@ -1,412 +1,447 @@
-# Groq AI Rust SDK
+# GroqAI - Rust Client SDK Library
 
-[![Crates.io](https://img.shields.io/crates/v/groqai)](https://crates.io/crates/groqai)
+[![Crates.io](https://img.shields.io/crates/v/groqai.svg)](https://crates.io/crates/groqai)
 [![Documentation](https://docs.rs/groqai/badge.svg)](https://docs.rs/groqai)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Rust](https://img.shields.io/badge/rust-1.70+-blue.svg)](https://www.rust-lang.org)
 
-一个现代化、类型安全的Rust SDK，用于与Groq AI API进行交互。提供简洁的API设计和完整的类型支持。
+A modern, type-safe Rust SDK for the [Groq API](https://groq.com/) with enterprise-grade features, providing lightning-fast AI inference capabilities with comprehensive error handling and built-in resilience.
 
-## ✨ 特性
+## Features
 
-- 🔒 **类型安全** - 完整的Rust类型系统支持，编译时错误检查
-- 🚀 **异步支持** - 基于`tokio`和`reqwest`的高性能异步API
-- 📊 **流式传输** - 支持实时流式聊天完成，具有健壮的错误处理
-- 🎵 **音频处理** - 音频转录、翻译和语音合成
-- 📁 **文件管理** - 完整的文件上传、下载和管理功能
-- 🔧 **工具调用** - 支持函数调用和工具使用，提供便捷的助手方法
-- 🖼️ **多模态** - 支持文本和图像的多模态输入
-- 📦 **批量处理** - 高效的批量任务处理
-- 🏗️ **Builder模式** - 清晰的参数设置和配置
-- 🛡️ **安全增强** - API密钥验证和环境变量支持
-- 📈 **日志概率** - 支持详细的响应概率信息
-- 🚨 **错误处理** - 结构化的API错误信息和实用的错误类型
+- 🚀 **High Performance** - Built for speed with async/await support and efficient HTTP transport
+- 💬 **Chat Completions** - Support for both streaming and non-streaming conversations with advanced message types
+- 🎵 **Audio Processing** - Transcription and translation using Whisper models with file and URL support
+- 📁 **File Management** - Complete file lifecycle management (upload, list, retrieve, delete)
+- 🔄 **Batch Processing** - Efficient bulk operations for large-scale tasks with status monitoring
+- 🤖 **Model Information** - Retrieve available models and their detailed capabilities
+- 🎯 **Fine-tuning** - Custom model training support with supervised learning
+- 🛡️ **Enterprise Error Handling** - Comprehensive error types, automatic retries, and graceful degradation
+- 📊 **Smart Rate Limiting** - Built-in rate limiting with exponential backoff and retry-after header support
+- 🔧 **Flexible Configuration** - Customizable timeouts, proxies, base URLs, and transport settings
+- 🔒 **Type Safety** - Strongly typed API with compile-time guarantees
+- 🌐 **Proxy Support** - Full HTTP/HTTPS proxy support for enterprise environments
+- 📝 **Rich Message Types** - Support for text, images, and multi-part messages
+- 🔄 **Conversation Management** - Built-in conversation history management with token optimization
 
-## 📦 安装
+## Quick Start
+
+### Installation
+
+Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-groqai = "0.1.0"
-tokio = { version = "1.0", features = ["full"] }
+groqai = "0.1.8"
+tokio = { version = "1.47", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
 ```
 
-## 🚀 快速开始
-
-### 基本聊天
-
-```rust
-use groqai::{GroqClient, ChatMessage, Role, ChatCompletionRequest};
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // 从环境变量加载API密钥（推荐）
-    let client = GroqClient::from_env()?;
-    
-    // 或者直接提供API密钥（需要以"gsk_"开头）
-    // let client = GroqClient::new("gsk_your-api-key".to_string())?;
-    
-    let message = ChatMessage::new_text(
-        Role::User,
-        "你好，请介绍一下你自己".to_string()
-    );
-    
-    let request = ChatCompletionRequest {
-        messages: vec![message],
-        model: "llama-3.1-70b-versatile".to_string(),
-        temperature: Some(0.7),
-        stream: Some(false),
-        ..Default::default()
-    };
-    
-    let response = client.chat_completions(request).await?;
-    println!("回复: {}", response.choices[0].message.content);
-    Ok(())
-}
-```
-
-### 流式聊天（增强的错误处理）
-
-```rust
-use groqai::{GroqClient, ChatMessage, Role, ChatCompletionRequest};
-use futures::TryStreamExt;
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = GroqClient::from_env()?;
-    
-    let message = ChatMessage::new_text(
-        Role::User,
-        "请写一个关于Rust的短诗".to_string()
-    );
-    
-    let request = ChatCompletionRequest {
-        messages: vec![message],
-        model: "llama-3.1-70b-versatile".to_string(),
-        stream: Some(true),
-        ..Default::default()
-    };
-    
-    let mut stream = client.stream_chat_completions(request).await?;
-    
-    while let Some(chunk) = stream.try_next().await? {
-        if let Some(delta) = &chunk.choices[0].delta {
-            print!("{}", delta.content);
-        }
-    }
-    println!();
-    Ok(())
-}
-```
-
-### 工具调用（新增助手方法）
-
-```rust
-use groqai::{GroqClient, ChatMessage, Role, Tool, ToolChoice};
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = GroqClient::from_env()?;
-    
-    let messages = vec![
-        ChatMessage::new_text(Role::User, "北京现在的天气怎么样？".to_string())
-    ];
-    
-    let tools = vec![
-        Tool {
-            function: Function {
-                name: "get_weather".to_string(),
-                description: Some("获取指定城市的天气信息".to_string()),
-                parameters: serde_json::json!({
-                    "type": "object",
-                    "properties": {
-                        "city": {"type": "string", "description": "城市名称"}
-                    },
-                    "required": ["city"]
-                }),
-            },
-        }
-    ];
-    
-    // 使用便捷的助手方法
-    let response = client.chat_with_tools(
-        messages,
-        "llama-3.1-70b-versatile",
-        tools,
-        Some(ToolChoice::Auto)
-    ).await?;
-    
-    println!("回复: {}", response.choices[0].message.content);
-    Ok(())
-}
-```
-
-### 多模态消息
-
-```rust
-use groqai::{ChatMessage, Role, MessagePart, ImageUrl};
-
-let multimodal_message = ChatMessage::new_multimodal(
-    Role::User,
-    vec![
-        MessagePart::Text {
-            text: "请描述这张图片".to_string(),
-        },
-        MessagePart::ImageUrl {
-            image_url: ImageUrl {
-                url: "https://example.com/image.jpg".to_string(),
-                detail: Some("high".to_string()),
-            },
-        },
-    ]
-);
-```
-
-### 音频转录（更新：直接文件路径）
-
-```rust
-use groqai::{GroqClient, AudioTranscriptionRequest};
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = GroqClient::from_env()?;
-    
-    let request = AudioTranscriptionRequest::new(
-        "whisper-large-v3".to_string(),
-    )
-    .language("zh".to_string())
-    .prompt("这是一段中文音频".to_string())
-    .temperature(0.0);
-    
-    // 直接传入文件路径，SDK会自动处理文件上传
-    let transcription = client.audio_transcription(request, "audio.mp3").await?;
-    println!("转录结果: {}", transcription.text);
-    Ok(())
-}
-```
-
-### 文件管理
-
-```rust
-use groqai::GroqClient;
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = GroqClient::from_env()?;
-    
-    // 上传文件
-    let file = client.upload_file("data.json", "batch").await?;
-    println!("文件ID: {}", file.id);
-    
-    // 列出所有文件
-    let files = client.list_files().await?;
-    for file in &files.data {
-        println!("文件: {} ({} bytes)", file.filename, file.bytes);
-    }
-    
-    // 删除文件
-    let delete_result = client.delete_file(&file.id).await?;
-    println!("删除成功: {}", delete_result.deleted);
-    
-    Ok(())
-}
-```
-
-### 批量处理
-
-```rust
-use groqai::GroqClient;
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = GroqClient::from_env()?;
-    
-    // 创建批量任务
-    let batch = client.create_batch("file_id", "24h").await?;
-    println!("批量任务ID: {}", batch.id);
-    
-    // 查询批量任务状态
-    let batch_status = client.retrieve_batch(&batch.id).await?;
-    println!("状态: {}", batch_status.status);
-    
-    Ok(())
-}
-```
-
-## 🛠️ 错误处理（增强版）
-
-```rust
-use groqai::{GroqClient, GroqError};
-
-match client.chat_completions(request).await {
-    Ok(response) => {
-        println!("成功: {}", response.choices[0].message.content);
-    }
-    Err(GroqError::Api(api_error)) => {
-        eprintln!("API错误: {} - {}", api_error.status, api_error.message);
-        
-        // 检查是否为特定类型的错误
-        if api_error.is_rate_limit() {
-            eprintln!("这是速率限制错误，请稍后重试");
-        } else if api_error.is_authentication_error() {
-            eprintln!("这是认证错误，请检查API密钥");
-        }
-        
-        // 获取详细的错误信息
-        if let Some(details) = api_error.details {
-            eprintln!("错误类型: {}", details.error_type);
-            eprintln!("错误代码: {}", details.code);
-        }
-    }
-    Err(GroqError::InvalidApiKey(key)) => {
-        eprintln!("无效的API密钥格式: {}", key);
-    }
-    Err(GroqError::StreamParsing(msg)) => {
-        eprintln!("流解析错误: {}", msg);
-    }
-    Err(e) => {
-        eprintln!("其他错误: {}", e);
-    }
-}
-```
-
-## 🔐 API密钥管理
-
-### 环境变量（推荐）
+Or install via cargo:
 
 ```bash
-# 设置环境变量
-export GROQ_API_KEY="gsk_your-actual-api-key"
-
-# 在代码中使用
-let client = GroqClient::from_env()?;
+cargo add groqai
+cargo add tokio --features full
 ```
 
-### 直接提供
+### Basic Usage
 
 ```rust
-// 验证格式（必须以"gsk_"开头）
-let client = GroqClient::new("gsk_your-api-key".to_string())?;
+use groqai::{GroqClientBuilder, ChatMessage, Role};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create a client
+    let client = GroqClientBuilder::new("gsk_your_api_key_here".to_string())?
+        .build()?;
+    
+    // Create a chat completion
+    let messages = vec![
+        ChatMessage::new_text(Role::User, "Explain quantum computing in simple terms")
+    ];
+    
+    let response = client
+        .chat("llama-3.1-70b-versatile")
+        .messages(messages)
+        .temperature(0.7)
+        .max_completion_tokens(500)
+        .send()
+        .await?;
+    
+    println!("Response: {}", response.choices[0].message.content);
+    Ok(())
+}
 ```
 
-## 📊 日志概率支持
+## API Reference
+
+### Chat Completions
+
+#### Non-streaming Chat
 
 ```rust
-use groqai::{GroqClient, ChatCompletionRequest};
+use groqai::{GroqClientBuilder, ChatMessage, Role};
 
-let request = ChatCompletionRequest {
-    messages: vec![message],
-    model: "llama-3.1-70b-versatile".to_string(),
-    logprobs: Some(true),  // 启用日志概率
-    top_logprobs: Some(5), // 返回前5个最可能的token
-    ..Default::default()
+let client = GroqClientBuilder::new("gsk_your_api_key".to_string())?.build()?;
+
+let messages = vec![
+    ChatMessage::new_text(Role::System, "You are a helpful assistant."),
+    ChatMessage::new_text(Role::User, "What is the capital of France?"),
+];
+
+let response = client
+    .chat("llama-3.1-70b-versatile")
+    .messages(messages)
+    .temperature(0.7)
+    .send()
+    .await?;
+
+println!("{}", response.choices[0].message.content);
+```
+
+#### Streaming Chat
+
+```rust
+use futures::StreamExt;
+
+let mut stream = client
+    .chat("llama-3.1-70b-versatile")
+    .messages(messages)
+    .stream(true)
+    .send_stream()
+    .await?;
+
+while let Some(chunk) = stream.next().await {
+    match chunk {
+        Ok(chunk) => {
+            if let Some(content) = &chunk.choices[0].delta.content {
+                print!("{}", content);
+            }
+        }
+        Err(e) => eprintln!("Error: {}", e),
+    }
+}
+```
+
+### Audio Processing
+
+#### Transcription
+
+```rust
+use groqai::AudioTranscriptionRequest;
+use std::path::PathBuf;
+
+let request = AudioTranscriptionRequest {
+    file: Some(PathBuf::from("audio.mp3")),
+    url: None,
+    model: "whisper-large-v3".to_string(),
+    language: Some("en".to_string()),
+    prompt: None,
+    response_format: Some("json".to_string()),
+    temperature: Some(0.0),
+    timestamp_granularities: None,
 };
 
-let response = client.chat_completions(request).await?;
+let transcription = client.audio().transcribe(request).await?;
+println!("Transcription: {}", transcription.text);
+```
 
-if let Some(logprobs) = &response.choices[0].logprobs {
-    println!("Token概率信息:");
-    for (token, prob) in &logprobs.content {
-        println!("  {}: {:.4}", token, prob);
-    }
+#### Translation
+
+```rust
+use groqai::AudioTranslationRequest;
+
+let request = AudioTranslationRequest {
+    file: Some(PathBuf::from("spanish_audio.mp3")),
+    url: None,
+    model: "whisper-large-v3".to_string(),
+    prompt: None,
+    response_format: Some("json".to_string()),
+    temperature: Some(0.0),
+};
+
+let translation = client.audio().translate(request).await?;
+println!("Translation: {}", translation.text);
+```
+
+### File Management
+
+```rust
+use groqai::FileCreateRequest;
+use std::path::PathBuf;
+
+// Upload a file
+let request = FileCreateRequest::new(
+    PathBuf::from("training_data.jsonl"),
+    "batch".to_string()
+)?;
+let file = client.files().create(request).await?;
+
+// List files
+let files = client.files().list().await?;
+for file in files.data {
+    println!("File: {} ({})", file.filename, file.purpose);
+}
+
+// Retrieve a file
+let file = client.files().retrieve("file_id".to_string()).await?;
+
+// Delete a file
+let deletion = client.files().delete("file_id".to_string()).await?;
+```
+
+### Batch Processing
+
+```rust
+use groqai::BatchCreateRequest;
+
+// Create a batch job
+let request = BatchCreateRequest {
+    input_file_id: "file_abc123".to_string(),
+    endpoint: "/chat/completions".to_string(),
+    completion_window: "24h".to_string(),
+    metadata: None,
+};
+
+let batch = client.batches().create(request).await?;
+println!("Batch created: {}", batch.id);
+
+// Check batch status
+let batch = client.batches().retrieve(batch.id).await?;
+println!("Status: {}", batch.status);
+
+// List batches
+let batches = client.batches().list(None, Some(10)).await?;
+```
+
+### Model Information
+
+```rust
+// List available models
+let models = client.models().list().await?;
+for model in models.data {
+    println!("Model: {} - {}", model.id, model.owned_by);
+}
+
+// Get model details
+let model = client.models().retrieve("llama-3.1-70b-versatile".to_string()).await?;
+println!("Context window: {} tokens", model.context_window);
+```
+
+## Configuration
+
+### Custom Configuration
+
+```rust
+use std::time::Duration;
+use url::Url;
+
+let client = GroqClientBuilder::new("gsk_your_api_key".to_string())?
+    .base_url(Url::parse("https://api.groq.com/openai/v1/")?)
+    .timeout(Duration::from_secs(60))
+    .build()?;
+```
+
+### Using Proxy
+
+```rust
+let proxy = reqwest::Proxy::http("http://proxy.example.com:8080")?;
+let client = GroqClientBuilder::new("gsk_your_api_key".to_string())?
+    .proxy(proxy)
+    .build()?;
+```
+
+## Error Handling
+
+The library provides comprehensive error handling through the `GroqError` enum:
+
+```rust
+use groqai::GroqError;
+
+match client.chat("model").messages(messages).send().await {
+    Ok(response) => println!("Success: {}", response.choices[0].message.content),
+    Err(GroqError::RateLimited) => println!("Rate limited, please retry later"),
+    Err(GroqError::InvalidApiKey(_)) => println!("Invalid API key"),
+    Err(GroqError::Api(api_error)) => println!("API error: {}", api_error.error.message),
+    Err(e) => println!("Other error: {}", e),
 }
 ```
 
-## 📚 API 参考
+## Supported Models
 
-### 核心类型
+The SDK supports all current Groq models with built-in type safety:
 
-- `GroqClient` - 主要的API客户端
-- `ChatMessage` - 聊天消息结构
-- `Role` - 消息角色枚举
-- `MessageContent` - 消息内容类型
-- `ToolCall` - 工具调用结构
-- `Tool` - 工具定义结构
-- `AudioTranscriptionRequest` - 音频转录请求
-- `AudioTranslationRequest` - 音频翻译请求
-- `LogProbs` - 日志概率信息
+### Chat Models
+- **Llama 3.1 Series**: 
+  - `llama-3.1-8b-instant` - Fast responses for simple tasks
+  - `llama-3.1-70b-versatile` - Balanced performance and capability
+  - `llama-3.1-405b-reasoning` - Advanced reasoning and complex tasks
+  - `llama-3.3-70b-versatile` - Latest model with enhanced capabilities
+- **Mixtral**: `mixtral-8x7b-32768` - Large context window for complex conversations
+- **Gemma**: `gemma2-9b-it` - Efficient instruction-tuned model
+- **Qwen**: `qwen2.5-72b-instruct` - Multilingual capabilities
 
-### 主要方法
+### Audio Models
+- **Whisper**: `whisper-large-v3` - State-of-the-art speech recognition and translation
 
-#### 聊天完成
-- `chat_completions()` - 聊天完成API
-- `stream_chat_completions()` - 流式聊天完成（增强错误处理）
+### Model Selection Helper
+```rust
+use groqai::KnownModel;
 
-#### 工具调用助手
-- `create_tool_call_request()` - 创建工具调用请求
-- `chat_with_tools()` - 带工具调用的聊天完成
+// Type-safe model selection
+let model = KnownModel::Llama3_1_70bVersatile;
+let response = client.chat(&model.to_string()).send().await?;
+```
 
-#### 音频处理
-- `audio_transcription()` - 音频转录（直接文件路径）
-- `audio_translation()` - 音频翻译（直接文件路径）
-- `audio_speech()` - 语音合成
+## Rate Limiting
 
-#### 文件管理
-- `upload_file()` - 上传文件
-- `list_files()` - 列出文件
-- `retrieve_file()` - 获取文件信息
-- `download_file()` - 下载文件
-- `delete_file()` - 删除文件
+The client includes built-in rate limiting with exponential backoff:
 
-#### 批量处理
-- `create_batch()` - 创建批量任务
-- `retrieve_batch()` - 查询批量任务
-- `list_batches()` - 列出批量任务
-- `cancel_batch()` - 取消批量任务
+```rust
+// Rate limiting is handled automatically
+let response = client.chat("model").messages(messages).send().await?;
+```
 
-#### 模型管理
-- `get_models()` - 获取可用模型列表
+## Advanced Features
 
-### 构造函数
+### Multi-Modal Messages
+```rust
+use groqai::{ChatMessage, Role, MessageContent, ImageUrl};
 
-- `GroqClient::new(api_key)` - 创建客户端（带验证）
-- `GroqClient::from_env()` - 从环境变量创建客户端
+let messages = vec![
+    ChatMessage {
+        role: Role::User,
+        content: MessageContent::Parts(vec![
+            MessagePart::Text { text: "What's in this image?".to_string() },
+            MessagePart::ImageUrl { 
+                image_url: ImageUrl::new("https://example.com/image.jpg") 
+            },
+        ]),
+        name: None,
+        tool_calls: None,
+        tool_call_id: None,
+    }
+];
+```
 
-## 🧪 测试
+### Conversation History Management
+```rust
+// Built-in conversation management with token optimization
+let mut conversation = Vec::new();
+conversation.push(ChatMessage::new_text(Role::User, "Hello"));
 
-运行测试套件：
+// Automatic history trimming to stay within token limits
+trim_conversation_history(&mut conversation, 15, 18000);
+```
+
+### Enterprise Proxy Configuration
+```rust
+use reqwest::Proxy;
+
+let proxy = Proxy::all("http://corporate-proxy:8080")?
+    .basic_auth("username", "password");
+
+let client = GroqClientBuilder::new(api_key)?
+    .proxy(proxy)
+    .timeout(Duration::from_secs(120))
+    .build()?;
+```
+
+## Examples
+
+Check out the `examples/` directory for comprehensive examples:
+
+- `cli_chat.rs` - Interactive CLI chat application with streaming support
+- `chat_completion.rs` - Basic chat completion
+- `streaming_chat.rs` - Streaming responses
+- `audio_transcription.rs` - Audio processing
+- `batch_processing.rs` - Batch operations
+- `file_management.rs` - File operations
+- `model_info.rs` - Model information and capabilities
+
+## Requirements
+
+- Rust 1.70 or later
+- A valid Groq API key (get one at [console.groq.com](https://console.groq.com/))
+
+## Project Status
+
+This SDK is actively maintained and production-ready. Current version: **0.1.8**
+
+### Roadmap
+
+- ✅ Chat Completions (streaming & non-streaming)
+- ✅ Audio Transcription & Translation
+- ✅ File Management
+- ✅ Batch Processing
+- ✅ Model Information
+- ✅ Fine-tuning Support
+- ✅ Enterprise Features (proxy, rate limiting)
+- 🔄 Function Calling (in progress)
+- 📋 Vision API enhancements
+- 📋 Advanced streaming features
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- [Groq](https://groq.com/) for providing the lightning-fast AI inference API
+- The Rust community for excellent async and HTTP libraries
+- Contributors and users who help improve this SDK
+
+## Architecture
+
+The SDK is built with a modular architecture:
+
+- **Transport Layer** (`transport.rs`) - HTTP client with retry logic and rate limiting
+- **API Modules** (`api/`) - Endpoint-specific implementations for each Groq service
+- **Type System** (`types.rs`) - Strongly typed request/response structures
+- **Error Handling** (`error.rs`) - Comprehensive error types with context
+- **Rate Limiting** (`rate_limit.rs`) - Smart rate limiting with exponential backoff
+- **Client Builder** (`client.rs`) - Flexible client configuration
+
+## Performance Considerations
+
+- **Async/Await**: Built on Tokio for high-performance async operations
+- **Connection Pooling**: Reuses HTTP connections for better performance
+- **Streaming**: Efficient streaming for real-time applications
+- **Memory Management**: Optimized for low memory footprint
+- **Rate Limiting**: Prevents API quota exhaustion with smart backoff
+
+## Security Features
+
+- **API Key Validation**: Validates API key format at build time
+- **HTTPS Only**: All communications use TLS encryption
+- **Proxy Support**: Full support for corporate proxy environments
+- **Error Sanitization**: Sensitive data is not logged in error messages
+
+## Testing
+
+The SDK includes comprehensive tests:
 
 ```bash
+# Run all tests
 cargo test
+
+# Run specific test modules
+cargo test tests::chat
+cargo test tests::audio
+cargo test tests::files
 ```
 
-测试覆盖：
-- 客户端初始化验证
-- 基本模型结构创建
-- 错误处理逻辑
+## Support
 
-## 📖 更多示例
-
-查看 `examples/` 目录中的完整示例：
-
-```bash
-cargo run --example modern_examples
-```
-
-## 📋 版本信息
-
-### v0.1.0 - 初始发布版本
-- 🆕 **结构化错误处理** - 完整的API错误信息解析和类型识别
-- 🆕 **企业级安全** - API密钥验证和环境变量配置
-- 🆕 **健壮流式处理** - 强大的SSE支持和错误恢复
-- 🆕 **工具调用集成** - 内置助手方法和简化API
-- 🆕 **概率分析** - 完整的token级别概率信息
-- 🆕 **专业文档** - 完整的Rustdoc和测试覆盖
-- 🎯 **设计理念** - 零配置启动，类型安全，开箱即用
-
-## 🤝 贡献
-
-欢迎贡献！请查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解贡献指南。
-
-## 📄 许可证
-
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
-
-## 📞 支持
-
-- 💬 讨论: [GitHub Discussions](https://github.com/hiddenpath/groqai-rust-sdk/discussions)
-- 🐛 问题: [GitHub Issues](https://github.com/hiddenpath/groqai-rust-sdk/issues)
-- 📖 文档: [docs.rs/groqai](https://docs.rs/groqai)
-- 🔗 官方API文档: [Groq API Reference](https://console.groq.com/docs/api-reference)
+- 📖 [Documentation](https://docs.rs/groqai)
+- 🐛 [Issue Tracker](https://github.com/hiddenpath/groqai-rust-sdk/issues)
+- 💬 [Discussions](https://github.com/hiddenpath/groqai-rust-sdk/discussions)
+- 📧 [Author](mailto:alex.wang@msn.com)
 
 ---
 
-**注意**: 这是一个非官方的Groq AI SDK。Groq AI不对此SDK提供官方支持。
+**Note**: This is an unofficial client SDK. For official support, please refer to the [Groq documentation](https://console.groq.com/docs).

@@ -1,6 +1,6 @@
 [package]
 name = "groqai"
-version = "0.1.8"
+version = "0.1.9"
 edition = "2021"
 description = "A modern, type-safe Rust SDK for the Groq AI API with enterprise-grade features"
 authors = ["Alex Wang <alex.wang@msn.com>"]
@@ -8,13 +8,13 @@ license = "MIT"
 repository = "https://github.com/hiddenpath/groqai-rust-sdk"
 keywords = ["groq", "ai", "api", "rust", "sdk"]
 categories = ["api-bindings"]
-readme = "README_en.md"
+readme = "README.md"
 
 [dependencies]
 reqwest = { version = "0.12.23", features = ["json", "blocking", "multipart", "stream"] }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.142"
-thiserror = "2.0.14"
+thiserror = "2.0.15"
 tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread"] }
 futures = "0.3.31"
 bytes = "1.10.1"

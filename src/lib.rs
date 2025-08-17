@@ -1,3 +1,51 @@
+//! # GroqAI - Rust Client Library for Groq API
+//! 
+//! GroqAI 是一个用于 Groq API 的 Rust 客户端库
+//! 
+//! This crate provides a comprehensive Rust client for interacting with the Groq API,
+//! offering support for chat completions, audio transcription/translation, file management,
+//! batch processing, and model information retrieval.
+//! 
+//! ## Features
+//! 
+//! - **Chat Completions**: Support for both streaming and non-streaming chat completions
+//! - **Audio Processing**: Audio transcription and translation capabilities
+//! - **File Management**: Upload, list, retrieve, and delete files
+//! - **Batch Processing**: Create and manage batch jobs for efficient processing
+//! - **Model Information**: Retrieve available models and their details
+//! - **Rate Limiting**: Built-in rate limiting and retry mechanisms
+//! - **Error Handling**: Comprehensive error types for robust error handling
+//! 
+//! ## Quick Start
+//! 
+//! ```rust,no_run
+//! use groqai::{GroqClientBuilder, ChatMessage, Role};
+//! 
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     let client = GroqClientBuilder::new("your-api-key".to_string())?
+//!         .build()?;
+//!     
+//!     let messages = vec![
+//!         ChatMessage::new_text(Role::User, "Hello, how are you?")
+//!     ];
+//!     
+//!     let response = client
+//!         .chat("llama-3.1-70b-versatile")
+//!         .messages(messages)
+//!         .send()
+//!         .await?;
+//!     
+//!     println!("Response: {}", response.choices[0].message.content);
+//!     Ok(())
+//! }
+//! ```
+//! 
+//! ## API Key
+//! 
+//! You need a valid Groq API key to use this library. The API key must start with "gsk_".
+//! You can obtain one from the [Groq Console](https://console.groq.com/).
+
 pub mod api;
 pub mod client;
 pub mod error;
@@ -7,8 +55,7 @@ pub mod transport;
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::client::{GroqClient, GroqClientBuilder};
+    use crate::client::GroqClientBuilder;
     use crate::error::GroqError;
     use crate::types::{ChatMessage, Role};
 
@@ -36,16 +83,13 @@ mod tests {
     }
 }
 
-// 统一导出公共API
+// Public API exports
 pub use api::chat::{ChatCompletionRequest, ChatRequestBuilder};
-pub use client::GroqClient;
-pub use client::GroqClientBuilder;
+pub use client::{GroqClient, GroqClientBuilder};
 pub use error::GroqError;
 pub use types::*;
 pub use api::audio::{AudioTranscriptionRequest, AudioTranslationRequest, AudioRequestBuilder};
 pub use api::batches::{BatchCreateRequest, BatchRequestBuilder};
 pub use api::files::{FileCreateRequest, FileRequestBuilder};
-pub use api::models::{ModelsRequestBuilder};
+pub use api::models::ModelsRequestBuilder;
 pub use api::fine_tunings::{FineTuningCreateRequest, FineTuningRequestBuilder};
-
-

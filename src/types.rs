@@ -1,3 +1,7 @@
+//! Type definitions for Groq API requests and responses
+//! 
+//! 类型定义模块，包含所有 API 请求和响应的数据结构
+
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
