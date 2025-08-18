@@ -1,14 +1,12 @@
 // examples/chat_completion.rs
 // Basic chat completion example
 
-use groqai::{GroqClientBuilder, ChatMessage, Role};
-use std::env;
+use groqai::{GroqClient, ChatMessage, Role};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let api_key = env::var("GROQ_API_KEY").expect("GROQ_API_KEY must be set");
-    
-    let client = GroqClientBuilder::new(api_key)?.build()?;
+    // Using environment variables (recommended)
+    let client = GroqClient::new()?;
     
     let messages = vec![
         ChatMessage::new_text(Role::System, "You are a helpful assistant."),
@@ -17,8 +15,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let response = client
         .chat("llama-3.1-70b-versatile")
-        .message(messages[0].clone())
-        .message(messages[1].clone())
+        .messages(messages)
         .temperature(0.7)
         .send()
         .await?;

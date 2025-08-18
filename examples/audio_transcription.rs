@@ -1,14 +1,13 @@
 // examples/audio_transcription.rs
 // Audio transcription and translation example
 
-use groqai::{GroqClientBuilder, AudioTranscriptionRequest, AudioTranslationRequest};
-use std::{env, path::PathBuf};
+use groqai::{GroqClient, AudioTranscriptionRequest, AudioTranslationRequest};
+use std::path::PathBuf;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let api_key = env::var("GROQ_API_KEY").expect("GROQ_API_KEY must be set");
-    
-    let client = GroqClientBuilder::new(api_key)?.build()?;
+    // Using environment variables (recommended)
+    let client = GroqClient::new()?;
     
     // Transcription example
     let transcription_request = AudioTranscriptionRequest {

@@ -1,15 +1,13 @@
 // examples/streaming_chat.rs
 // Streaming chat completion example
 
-use groqai::{GroqClientBuilder, ChatMessage, Role};
+use groqai::{GroqClient, ChatMessage, Role};
 use futures::StreamExt;
-use std::env;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let api_key = env::var("GROQ_API_KEY").expect("GROQ_API_KEY must be set");
-    
-    let client = GroqClientBuilder::new(api_key)?.build()?;
+    // Using environment variables (recommended)
+    let client = GroqClient::new()?;
     
     let messages = vec![
         ChatMessage::new_text(Role::User, "Write a short story about a robot learning to paint"),
@@ -17,7 +15,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let mut stream = client
         .chat("llama-3.1-70b-versatile")
-        .message(messages[0].clone())
+        .messages(messages)
         .temperature(0.8)
         .stream(true)
         .send_stream()

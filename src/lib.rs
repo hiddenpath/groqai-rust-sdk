@@ -18,13 +18,25 @@
 //! 
 //! ## Quick Start
 //! 
+//! ### Using Environment Variables (Recommended)
+//! 
+//! **⚠️ Required: Set `GROQ_API_KEY` environment variable first!**
+//! 
+//! ```bash
+//! export GROQ_API_KEY="gsk_your_api_key_here"
+//! ```
+//! 
 //! ```rust,no_run
-//! use groqai::{GroqClientBuilder, ChatMessage, Role};
+//! // Option 1: Import specific types
+//! use groqai::{GroqClient, ChatMessage, Role};
+//! 
+//! // Option 2: Use prelude for convenience (imports most common types)
+//! // use groqai::prelude::*;
 //! 
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     let client = GroqClientBuilder::new("your-api-key".to_string())?
-//!         .build()?;
+//!     // Creates client from GROQ_API_KEY environment variable
+//!     let client = GroqClient::new()?;
 //!     
 //!     let messages = vec![
 //!         ChatMessage::new_text(Role::User, "Hello, how are you?")
@@ -41,7 +53,44 @@
 //! }
 //! ```
 //! 
-//! ## API Key
+//! ### Using API Key Directly
+//! 
+//! ```rust,no_run
+//! use groqai::prelude::*;  // Convenient import
+//! 
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     let client = GroqClient::with_api_key("gsk_your_api_key")?;
+//!     
+//!     let messages = vec![
+//!         ChatMessage::new_text(Role::User, "Hello!")
+//!     ];
+//!     
+//!     let response = client
+//!         .chat("llama-3.1-70b-versatile")
+//!         .messages(messages)
+//!         .send()
+//!         .await?;
+//!     
+//!     println!("Response: {}", response.choices[0].message.content);
+//!     Ok(())
+//! }
+//! ```
+//! 
+//! ## Configuration
+//! 
+//! ### Environment Variables
+//! 
+//! ```bash
+//! # Required
+//! export GROQ_API_KEY="gsk_your_api_key_here"
+//! 
+//! # Optional
+//! export GROQ_PROXY_URL="http://proxy.example.com:8080"
+//! export GROQ_TIMEOUT_SECS="60"  # default: 30
+//! ```
+//! 
+//! ### API Key
 //! 
 //! You need a valid Groq API key to use this library. The API key must start with "gsk_".
 //! You can obtain one from the [Groq Console](https://console.groq.com/).
@@ -83,13 +132,70 @@ mod tests {
     }
 }
 
-// Public API exports
-pub use api::chat::{ChatCompletionRequest, ChatRequestBuilder};
+// ============================================================================
+// Public API Exports - Organized for Developer Convenience
+// ============================================================================
+
+// Core Client (Most Important - Users need these first)
 pub use client::{GroqClient, GroqClientBuilder};
 pub use error::GroqError;
-pub use types::*;
-pub use api::audio::{AudioTranscriptionRequest, AudioTranslationRequest, AudioRequestBuilder};
-pub use api::batches::{BatchCreateRequest, BatchRequestBuilder};
-pub use api::files::{FileCreateRequest, FileRequestBuilder};
+
+// Essential Types (Common usage)
+pub use types::{
+    // Message types (most commonly used)
+    ChatMessage, Role, MessageContent, MessagePart, ImageUrl,
+    // Model types
+    KnownModel,
+    // Response types
+    ChatCompletionResponse, Choice, Usage,
+    ChatCompletionChunk, ChoiceChunk, MessageDelta,
+};
+
+// Request Builders (Fluent API)
+pub use api::chat::ChatRequestBuilder;
+pub use api::audio::AudioRequestBuilder;
+pub use api::files::FileRequestBuilder;
+pub use api::batches::BatchRequestBuilder;
 pub use api::models::ModelsRequestBuilder;
-pub use api::fine_tunings::{FineTuningCreateRequest, FineTuningRequestBuilder};
+pub use api::fine_tunings::FineTuningRequestBuilder;
+
+// Request Types (For advanced usage)
+pub use api::chat::ChatCompletionRequest;
+pub use api::audio::{AudioTranscriptionRequest, AudioTranslationRequest};
+pub use api::files::FileCreateRequest;
+pub use api::batches::BatchCreateRequest;
+pub use api::fine_tunings::FineTuningCreateRequest;
+
+// Response Types (For advanced usage)
+pub use types::{
+    // Audio responses
+    Transcription, Translation,
+    // File responses
+    WorkFile, WorkFileList, WorkFileDeletion,
+    // Model responses
+    Model, ModelList,
+    // Batch responses
+    Batch, BatchList, RequestCounts,
+    // Advanced types
+    Tool, ToolCall, FunctionCall, FunctionDef,
+    ResponseFormat, ToolChoice, ServiceTier, StopSequence,
+    StreamOptions, CompoundCustom, SearchSettings,
+};
+
+// ============================================================================
+// Convenience Re-exports for Common Patterns
+// ============================================================================
+
+/// Prelude module for convenient imports
+/// 
+/// ```rust
+/// use groqai::prelude::*;
+/// ```
+pub mod prelude {
+    pub use crate::{
+        GroqClient, GroqError,
+        ChatMessage, Role, MessageContent,
+        KnownModel,
+        ChatCompletionResponse,
+    };
+}

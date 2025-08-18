@@ -206,6 +206,50 @@ impl GroqClientBuilder {
 }
 
 impl GroqClient {
+    /// Create a client using environment variables.
+    ///
+    /// Required:
+    /// - GROQ_API_KEY
+    ///
+    /// Optional:
+    /// - GROQ_PROXY_URL / HTTPS_PROXY / HTTP_PROXY
+    /// - GROQ_TIMEOUT_SECS (default: 30)
+    pub fn from_env() -> Result<Self, GroqError> {
+        let api_key = std::env::var("GROQ_API_KEY")
+            .map_err(|_| GroqError::InvalidApiKey("GROQ_API_KEY not set".into()))?;
+
+        let mut builder = GroqClientBuilder::new(api_key)?;
+
+        if let Ok(proxy_url) = std::env::var("GROQ_PROXY_URL")
+            .or_else(|_| std::env::var("HTTPS_PROXY"))
+            .or_else(|_| std::env::var("HTTP_PROXY"))
+        {
+            if let Ok(proxy) = reqwest::Proxy::all(&proxy_url) {
+                builder = builder.proxy(proxy);
+            }
+        }
+
+        let timeout_secs: u64 = std::env::var("GROQ_TIMEOUT_SECS")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(30);
+        builder = builder.timeout(std::time::Duration::from_secs(timeout_secs));
+
+        builder.build()
+    }
+
+    /// Create a client from a given API key with default settings.
+    pub fn with_api_key(api_key: impl Into<String>) -> Result<Self, GroqError> {
+        GroqClientBuilder::new(api_key.into())?
+            .timeout(std::time::Duration::from_secs(30))
+            .build()
+    }
+
+    /// Alias for `from_env()`.
+    pub fn new() -> Result<Self, GroqError> {
+        Self::from_env()
+    }
+
     /// Creates a chat completion request builder.
     /// 
     /// # Arguments

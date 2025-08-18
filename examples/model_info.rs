@@ -1,14 +1,12 @@
 // examples/model_info.rs
 // Model information example
 
-use groqai::GroqClientBuilder;
-use std::env;
+use groqai::GroqClient;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let api_key = env::var("GROQ_API_KEY").expect("GROQ_API_KEY must be set");
-    
-    let client = GroqClientBuilder::new(api_key)?.build()?;
+    // Using environment variables (recommended)
+    let client = GroqClient::new()?;
     
     // List available models
     match client.models().list().await {

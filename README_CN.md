@@ -32,7 +32,7 @@
 
 ```toml
 [dependencies]
-groqai = "0.1.9"
+groqai = "0.1.10"
 tokio = { version = "1.47", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 ```
@@ -46,14 +46,30 @@ cargo add tokio --features full
 
 ### 基本用法
 
+#### 使用环境变量（推荐）
+
+**⚠️ 前置条件：先设置环境变量！**
+
+```bash
+# 必需
+export GROQ_API_KEY="gsk_your_api_key_here"
+
+# 可选
+export GROQ_PROXY_URL="http://proxy.example.com:8080"
+export GROQ_TIMEOUT_SECS="60"
+```
+
 ```rust
-use groqai::{GroqClientBuilder, ChatMessage, Role};
+// 选项1：导入特定类型（推荐用于应用程序）
+use groqai::{GroqClient, ChatMessage, Role};
+
+// 选项2：使用 prelude 便捷导入（推荐用于学习）
+// use groqai::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // 创建客户端
-    let client = GroqClientBuilder::new("gsk_your_api_key_here".to_string())?
-        .build()?;
+    // 从环境变量创建客户端（需要 GROQ_API_KEY）
+    let client = GroqClient::new()?;
     
     // 创建聊天完成
     let messages = vec![
@@ -72,6 +88,106 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 ```
+
+#### 直接使用 API 密钥
+
+```rust
+use groqai::prelude::*;  // 便捷导入常用类型
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // 使用 API 密钥创建客户端
+    let client = GroqClient::with_api_key("gsk_your_api_key_here")?;
+    
+    let messages = vec![
+        ChatMessage::new_text(Role::User, "你好！")
+    ];
+    
+    let response = client
+        .chat("llama-3.1-70b-versatile")
+        .messages(messages)
+        .send()
+        .await?;
+    
+    println!("回复: {}", response.choices[0].message.content);
+    Ok(())
+}
+```
+
+## 客户端创建方法
+
+GroqAI 提供四种灵活的客户端创建方式：
+
+### 1. 环境变量（推荐）
+```bash
+# 首先设置必需的环境变量
+export GROQ_API_KEY="gsk_your_api_key_here"
+```
+```rust
+// 最简单的方式，适用于生产环境
+let client = GroqClient::new()?;  // 从 GROQ_API_KEY 读取
+```
+
+### 2. 直接 API 密钥
+```rust
+// 快速设置，适用于开发测试
+let client = GroqClient::with_api_key("gsk_your_key")?;
+```
+
+### 3. 显式环境变量
+```rust
+// 显式使用环境变量
+let client = GroqClient::from_env()?;
+```
+
+### 4. 构建器模式（高级）
+```rust
+// 完全控制所有设置
+let client = GroqClientBuilder::new("gsk_your_key".to_string())?
+    .timeout(Duration::from_secs(60))
+    .proxy(proxy)
+    .build()?;
+```
+
+### 环境变量说明
+
+```bash
+# 必需
+export GROQ_API_KEY="gsk_your_api_key_here"
+
+# 可选
+export GROQ_PROXY_URL="http://proxy.example.com:8080"
+export GROQ_TIMEOUT_SECS="60"  # 默认 30 秒
+```
+
+## 导入模式
+
+GroqAI 提供灵活的导入选项以适应不同用例：
+
+### 1. Prelude 导入（推荐用于学习）
+```rust
+use groqai::prelude::*;
+// 导入: GroqClient, GroqError, ChatMessage, Role, MessageContent, KnownModel, ChatCompletionResponse
+```
+
+### 2. 特定导入（推荐用于应用程序）
+```rust
+use groqai::{GroqClient, ChatMessage, Role, GroqError};
+```
+
+### 3. 粒度导入（用于库开发）
+```rust
+use groqai::{
+    GroqClient, GroqClientBuilder,
+    ChatMessage, Role, MessageContent,
+    ChatCompletionResponse, GroqError,
+};
+```
+
+**根据需求选择：**
+- 📚 **学习/原型开发**: 使用 `prelude::*` 获得便利
+- 🏢 **应用程序**: 使用特定导入获得清晰性
+- 📦 **库开发**: 使用粒度导入避免冲突
 
 ## API 参考
 
@@ -230,9 +346,30 @@ println!("上下文窗口: {} 个令牌", model.context_window);
 
 ## 配置
 
-### 自定义配置
+### 环境变量
+
+客户端可以通过环境变量进行配置：
+
+```bash
+# 必需
+export GROQ_API_KEY="gsk_your_api_key_here"
+
+# 可选
+export GROQ_PROXY_URL="http://proxy.example.com:8080"  # 或 HTTPS_PROXY/HTTP_PROXY
+export GROQ_TIMEOUT_SECS="60"  # 默认: 30
+```
 
 ```rust
+use groqai::GroqClient;
+
+// 自动使用环境变量
+let client = GroqClient::new()?;
+```
+
+### 使用构建器进行高级配置
+
+```rust
+use groqai::GroqClientBuilder;
 use std::time::Duration;
 use url::Url;
 
@@ -245,6 +382,8 @@ let client = GroqClientBuilder::new("gsk_your_api_key".to_string())?
 ### 使用代理
 
 ```rust
+use groqai::GroqClientBuilder;
+
 let proxy = reqwest::Proxy::http("http://proxy.example.com:8080")?;
 let client = GroqClientBuilder::new("gsk_your_api_key".to_string())?
     .proxy(proxy)
@@ -335,13 +474,31 @@ trim_conversation_history(&mut conversation, 15, 18000);
 ```
 
 ### 企业代理配置
+
+#### 使用环境变量
+```bash
+export GROQ_API_KEY="gsk_your_api_key"
+export GROQ_PROXY_URL="http://username:password@corporate-proxy:8080"
+export GROQ_TIMEOUT_SECS="120"
+```
+
 ```rust
+use groqai::GroqClient;
+
+// 自动从环境变量使用代理
+let client = GroqClient::new()?;
+```
+
+#### 使用构建器模式
+```rust
+use groqai::GroqClientBuilder;
 use reqwest::Proxy;
+use std::time::Duration;
 
 let proxy = Proxy::all("http://corporate-proxy:8080")?
     .basic_auth("username", "password");
 
-let client = GroqClientBuilder::new(api_key)?
+let client = GroqClientBuilder::new("gsk_your_api_key".to_string())?
     .proxy(proxy)
     .timeout(Duration::from_secs(120))
     .build()?;
@@ -358,6 +515,10 @@ let client = GroqClientBuilder::new(api_key)?
 - `batch_processing.rs` - 批处理操作
 - `file_management.rs` - 文件操作
 - `model_info.rs` - 模型信息和功能
+- `client_convenience.rs` - 便捷方法演示
+- `client_creation_methods.rs` - 客户端创建方法完整指南
+- `import_patterns.rs` - 不同导入模式和最佳实践
+- `environment_setup.rs` - 环境变量设置和故障排除
 
 ## 要求
 
@@ -366,7 +527,7 @@ let client = GroqClientBuilder::new(api_key)?
 
 ## 项目状态
 
-此 SDK 正在积极维护且已可用于生产环境。当前版本：**0.1.9**
+此 SDK 正在积极维护且已可用于生产环境。当前版本：**0.1.10**
 
 ### 路线图
 

@@ -32,7 +32,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-groqai = "0.1.9"
+groqai = "0.1.10"
 tokio = { version = "1.47", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 ```
@@ -46,14 +46,30 @@ cargo add tokio --features full
 
 ### Basic Usage
 
+#### Using Environment Variables (Recommended)
+
+**⚠️ Prerequisites: Set your environment variables first!**
+
+```bash
+# Required
+export GROQ_API_KEY="gsk_your_api_key_here"
+
+# Optional
+export GROQ_PROXY_URL="http://proxy.example.com:8080"
+export GROQ_TIMEOUT_SECS="60"
+```
+
 ```rust
-use groqai::{GroqClientBuilder, ChatMessage, Role};
+// Option 1: Import specific types (recommended for applications)
+use groqai::{GroqClient, ChatMessage, Role};
+
+// Option 2: Use prelude for convenience (recommended for learning)
+// use groqai::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create a client
-    let client = GroqClientBuilder::new("gsk_your_api_key_here".to_string())?
-        .build()?;
+    // Creates client from environment variables (GROQ_API_KEY required)
+    let client = GroqClient::new()?;
     
     // Create a chat completion
     let messages = vec![
@@ -72,6 +88,106 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 ```
+
+#### Using API Key Directly
+
+```rust
+use groqai::prelude::*;  // Convenient import for common types
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create a client with API key
+    let client = GroqClient::with_api_key("gsk_your_api_key_here")?;
+    
+    let messages = vec![
+        ChatMessage::new_text(Role::User, "Hello!")
+    ];
+    
+    let response = client
+        .chat("llama-3.1-70b-versatile")
+        .messages(messages)
+        .send()
+        .await?;
+    
+    println!("Response: {}", response.choices[0].message.content);
+    Ok(())
+}
+```
+
+## Client Creation Methods
+
+GroqAI provides four flexible ways to create a client:
+
+### 1. Environment Variables (Recommended)
+```bash
+# First, set required environment variable
+export GROQ_API_KEY="gsk_your_api_key_here"
+```
+```rust
+// Simplest approach, ideal for production
+let client = GroqClient::new()?;  // Reads from GROQ_API_KEY
+```
+
+### 2. Direct API Key
+```rust
+// Quick setup for development and testing
+let client = GroqClient::with_api_key("gsk_your_key")?;
+```
+
+### 3. Explicit Environment Variables
+```rust
+// Explicit environment variable usage
+let client = GroqClient::from_env()?;
+```
+
+### 4. Builder Pattern (Advanced)
+```rust
+// Full control over all settings
+let client = GroqClientBuilder::new("gsk_your_key".to_string())?
+    .timeout(Duration::from_secs(60))
+    .proxy(proxy)
+    .build()?;
+```
+
+### Environment Variables Reference
+
+```bash
+# Required
+export GROQ_API_KEY="gsk_your_api_key_here"
+
+# Optional
+export GROQ_PROXY_URL="http://proxy.example.com:8080"
+export GROQ_TIMEOUT_SECS="60"  # default: 30 seconds
+```
+
+## Import Patterns
+
+GroqAI provides flexible import options to suit different use cases:
+
+### 1. Prelude Import (Recommended for Learning)
+```rust
+use groqai::prelude::*;
+// Imports: GroqClient, GroqError, ChatMessage, Role, MessageContent, KnownModel, ChatCompletionResponse
+```
+
+### 2. Specific Imports (Recommended for Applications)
+```rust
+use groqai::{GroqClient, ChatMessage, Role, GroqError};
+```
+
+### 3. Granular Imports (For Libraries)
+```rust
+use groqai::{
+    GroqClient, GroqClientBuilder,
+    ChatMessage, Role, MessageContent,
+    ChatCompletionResponse, GroqError,
+};
+```
+
+**Choose based on your needs:**
+- 📚 **Learning/Prototyping**: Use `prelude::*` for convenience
+- 🏢 **Applications**: Use specific imports for clarity
+- 📦 **Libraries**: Use granular imports to avoid conflicts
 
 ## API Reference
 
@@ -230,9 +346,30 @@ println!("Context window: {} tokens", model.context_window);
 
 ## Configuration
 
-### Custom Configuration
+### Environment Variables
+
+The client can be configured using environment variables:
+
+```bash
+# Required
+export GROQ_API_KEY="gsk_your_api_key_here"
+
+# Optional
+export GROQ_PROXY_URL="http://proxy.example.com:8080"  # or HTTPS_PROXY/HTTP_PROXY
+export GROQ_TIMEOUT_SECS="60"  # default: 30
+```
 
 ```rust
+use groqai::GroqClient;
+
+// Uses environment variables automatically
+let client = GroqClient::new()?;
+```
+
+### Advanced Configuration with Builder
+
+```rust
+use groqai::GroqClientBuilder;
 use std::time::Duration;
 use url::Url;
 
@@ -245,6 +382,8 @@ let client = GroqClientBuilder::new("gsk_your_api_key".to_string())?
 ### Using Proxy
 
 ```rust
+use groqai::GroqClientBuilder;
+
 let proxy = reqwest::Proxy::http("http://proxy.example.com:8080")?;
 let client = GroqClientBuilder::new("gsk_your_api_key".to_string())?
     .proxy(proxy)
@@ -335,13 +474,31 @@ trim_conversation_history(&mut conversation, 15, 18000);
 ```
 
 ### Enterprise Proxy Configuration
+
+#### Using Environment Variables
+```bash
+export GROQ_API_KEY="gsk_your_api_key"
+export GROQ_PROXY_URL="http://username:password@corporate-proxy:8080"
+export GROQ_TIMEOUT_SECS="120"
+```
+
 ```rust
+use groqai::GroqClient;
+
+// Automatically uses proxy from environment
+let client = GroqClient::new()?;
+```
+
+#### Using Builder Pattern
+```rust
+use groqai::GroqClientBuilder;
 use reqwest::Proxy;
+use std::time::Duration;
 
 let proxy = Proxy::all("http://corporate-proxy:8080")?
     .basic_auth("username", "password");
 
-let client = GroqClientBuilder::new(api_key)?
+let client = GroqClientBuilder::new("gsk_your_api_key".to_string())?
     .proxy(proxy)
     .timeout(Duration::from_secs(120))
     .build()?;
@@ -358,6 +515,10 @@ Check out the `examples/` directory for comprehensive examples:
 - `batch_processing.rs` - Batch operations
 - `file_management.rs` - File operations
 - `model_info.rs` - Model information and capabilities
+- `client_convenience.rs` - Convenience methods demonstration
+- `client_creation_methods.rs` - Complete client creation guide
+- `import_patterns.rs` - Different import patterns and best practices
+- `environment_setup.rs` - Environment variable setup and troubleshooting
 
 ## Requirements
 
@@ -366,7 +527,7 @@ Check out the `examples/` directory for comprehensive examples:
 
 ## Project Status
 
-This SDK is actively maintained and production-ready. Current version: **0.1.9**
+This SDK is actively maintained and production-ready. Current version: **0.1.10**
 
 ### Roadmap
 
